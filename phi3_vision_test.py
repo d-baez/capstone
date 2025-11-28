@@ -57,8 +57,7 @@ user_prompt = (
     
     Format:
     fruit: <type>
-    ripeness: <unripe|ripe|overripe>
-    reason: <one short sentence>
+    ripeness: <unripe|ripe|overripe|spoiled>
     """
 )
 allowed_labels = {"unripe", "ripe", "overripe", "spoiled"}
