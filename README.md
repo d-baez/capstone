@@ -18,6 +18,7 @@ Project Goals
         •	Unripe
         •	Ripe
         •	Overripe
+		•	Spoiled
 	•	Use a camera feed for real-time inference.
 	•	Optimize the model for edge deployment:
 	•	TensorFlow Lite (TFLite)
@@ -30,7 +31,7 @@ Project Goals
 System Architecture
 
 1. Data Collection
-	•	Images captured using a camera or manually curated dataset.
+	•	Images captured using a camera or a manually curated dataset.
 	•	Preprocessing pipeline for:
 	•	Resizing
 	•	Normalization
@@ -40,10 +41,10 @@ System Architecture
 
 Two model pathways are explored:
 
-    a. Lightweight CNN (recommended for Raspberry Pi)
+    a. Lightweight CNN ( Raspberry Pi)
         •	Small custom CNN
         •	Optional MobileNetV2 or EfficientNet-Lite
-        •	Outputs 3 classes: unripe / ripe / overripe
+        •	Outputs 4 classes: unripe / ripe / overripe / spoiled
         •	Export to TFLite for fast inference
     
     B. Phi-3.5 Vision (Desktop Testing Only)
