@@ -2,7 +2,7 @@
 import tensorflow as tf
 from pathlib import Path
 
-keras_model = tf.keras.models.load_model("watermelon_cnn.h5")
+keras_model = tf.keras.models.load_model("watermelon_cnn.keras")
 
 # Float32 version
 converter = tf.lite.TFLiteConverter.from_keras_model(keras_model)
