@@ -4,7 +4,8 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from pathlib import Path
 
-DATA_DIR = Path("data")
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "data"
 IMG_SIZE = (96, 96)   # keep small for Pi
 BATCH_SIZE = 32
 EPOCHS = 15
@@ -27,12 +28,16 @@ val_ds = keras.utils.image_dataset_from_directory(
     label_mode="categorical",
 )
 
+# Infer classes from the folder names
+class_names = train_ds.class_names
+num_classes = len(class_names)
+print(f"Detected classes: {class_names}")
+print(f"Number of classes: {num_classes}")
+
 # Performance tweaks
 AUTOTUNE = tf.data.AUTOTUNE
 train_ds = train_ds.shuffle(1000).prefetch(AUTOTUNE)
 val_ds = val_ds.prefetch(AUTOTUNE)
-
-num_classes = 3
 
 data_augmentation = keras.Sequential(
     [
@@ -42,7 +47,9 @@ data_augmentation = keras.Sequential(
     ]
 )
 
-def make_small_cnn(input_shape=(96, 96, 3), num_classes=3):
+def make_small_cnn(input_shape=(96, 96, 3), num_classes=None):
+    if num_classes is None:
+        raise ValueError("num_classes must be provided")
     inputs = keras.Input(shape=input_shape)
 
     x = data_augmentation(inputs)

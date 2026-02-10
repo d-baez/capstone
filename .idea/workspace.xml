@@ -4,19 +4,24 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="475b5649-34e9-481b-b1fc-59a413d27640" name="Changes" comment="updated code to perform better on my mac. also can now handle batched folder images">
-      <change afterPath="$PROJECT_DIR$/convert_to_tflite.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/convert_to_tflite_int8.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pi/pi_infer_fruit.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/train_cnn_bananas.py" afterDir="false" />
+    <list default="true" id="475b5649-34e9-481b-b1fc-59a413d27640" name="Changes" comment="update response format">
+      <change afterPath="$PROJECT_DIR$/logs/2-9-26_0414pm.log" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/train_cnn_watermelon.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/watermelon_dataset_loader.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/banana1jpeg.jpeg" beforeDir="false" afterPath="$PROJECT_DIR$/images/banana1.jpeg" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/phi3_vision_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/phi3_vision_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/train_cnn_bananas.py" beforeDir="false" afterPath="$PROJECT_DIR$/train_cnn_bananas.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExportToHTMLSettings">
+    <option name="printScope" value="4" />
+    <option name="OUTPUT_DIRECTORY" value="$USER_HOME$/Library/CloudStorage/Box-Box/capstone" />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -28,18 +33,22 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "d-baez"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;d-baez&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/d-baez/capstone.git",
-    "accountId": "db0c6ff5-801d-47ad-9f2d-f4ada64fd496"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/d-baez/capstone.git&quot;,
+    &quot;accountId&quot;: &quot;db0c6ff5-801d-47ad-9f2d-f4ada64fd496&quot;
   }
-}]]></component>
+}</component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 8
 }</component>
@@ -52,12 +61,16 @@
   "keyToString": {
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "Python.phi3_vision_test.executor": "Run",
+    "Python.train_cnn_bananas.executor": "Run",
+    "Python.watermelon_dataset_loader.executor": "Run",
+    "RunOnceActivity.MCP Project settings loaded": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
     "git-widget-placeholder": "master",
     "last_opened_file_path": "/Users/danielbaez/Documents/GitHub/capstone",
-    "settings.editor.selected.configurable": "preferences.pluginManager"
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "two.files.diff.last.used.file": "/Users/danielbaez/Documents/GitHub/capstone/train_cnn_watermelons.py"
   }
 }]]></component>
   <component name="RecentsManager">
@@ -65,13 +78,17 @@
       <recent name="$PROJECT_DIR$" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/logs" />
+      <recent name="$PROJECT_DIR$/data/train/ripe" />
+      <recent name="$PROJECT_DIR$/data/train/spoiled" />
+      <recent name="$PROJECT_DIR$/data/train/unripe" />
       <recent name="$PROJECT_DIR$" />
     </key>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-4e2b1448bda8-9a97661f3031-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-252.27397.106" />
+        <option value="bundled-python-sdk-f2b7a9f6281b-6e1f45a539f7-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-253.29346.142" />
       </set>
     </attachedChunks>
   </component>
@@ -99,7 +116,23 @@
       <option name="project" value="LOCAL" />
       <updated>1763664728830</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="create files for Raspi; update README.md with sow.">
+      <option name="closed" value="true" />
+      <created>1764356555109</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1764356555110</updated>
+    </task>
+    <task id="LOCAL-00004" summary="update response format">
+      <option name="closed" value="true" />
+      <created>1764357528308</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1764357528308</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -116,7 +149,20 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Created model and ran with local apple.jpeg" />
     <MESSAGE value="updated code to perform better on my mac. also can now handle batched folder images" />
-    <option name="LAST_COMMIT_MESSAGE" value="updated code to perform better on my mac. also can now handle batched folder images" />
+    <MESSAGE value="create files for Raspi; update README.md with sow." />
+    <MESSAGE value="update response format" />
+    <option name="LAST_COMMIT_MESSAGE" value="update response format" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/handheld_watermelon_scanner.py</url>
+          <line>1</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
   <component name="github-copilot-workspace">
     <instructionFileLocations>

@@ -53,3 +53,35 @@ Two model pathways are explored:
         •	Prototype testing
         •	Validation
         •	Not suitable for live inference on low-power devices
+
+
+update 2/9/25
+
+# Watermelon Integration
+
+## Quick Start
+
+1. **Organize Watermelon Dataset**
+```bash
+   python watermelon_dataset_loader.py
+```
+
+2. **Train Watermelon Model**
+```bash
+   python train_cnn_watermelon.py
+```
+
+3. **Convert to TFLite** (for Pi deployment)
+```bash
+   python convert_watermelon_to_tflite.py
+```
+
+## Model Comparison
+
+| Feature | Banana Model | Watermelon Model |
+|---------|--------------|------------------|
+| Input Size | 96x96 | 224x224 |
+| Classes | 3 | 4 |
+| Architecture | Lightweight CNN | Deeper CNN |
+| Data Source | Manual collection | Qilin Dataset |
+| Audio Data | No | Available (future) |

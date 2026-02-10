@@ -1,0 +1,19 @@
+# Config workspace customization. 
+#
+# This will be merged on top of the global configs (`~/.aipack-base/config-default.toml` and 
+# `~/.aipack-base/config-user.toml`), providing a specialized configuration for this workspace. 
+# 
+# For documentation, see `~/.aipack-base/config-default.toml`.
+
+[options]
+
+model       = "gpt-5-mini"
+temperature = 0.2
+input_concurrency = 2
+
+
+# Customize global model aliases here.
+#
+# See alias documentation at `~/.aipack-base/config-default.toml`
+[options.model_aliases]
+# my-model = "gpt-5-nano"

@@ -1,0 +1,10 @@
+.env
+*.tflite
+*.keras
+*.h5
+__pycache__/
+logs/
+scans/
+data_watermelon/
+temp_frame.jpg
+.venv/

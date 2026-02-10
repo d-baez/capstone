@@ -43,22 +43,22 @@ if device == "cpu":
 
 # Prompt in Phi-vision chat format
 user_prompt = (
-    # "Classify the ripeness of the fruit in this image. "
-    # "Respond with exactly ONE word from this list: "
-    # "[unripe, ripe, overripe, spoiled]. "
-    # "Do not add any other words."
-     """
-    You are a fruit ripeness inspector.
-    
-    Look at the image and:
-    1. Identify the type of fruit.
-    2. Say whether it is unripe, ripe, or overripe.
-    3. Briefly explain your reasoning.
-    
-    Format:
-    fruit: <type>
-    ripeness: <unripe|ripe|overripe|spoiled>
-    """
+    "Classify the ripeness of the fruit in this image. "
+    "Respond with exactly ONE word and accuracy percentage from this list: "
+    "[unripe, ripe, overripe, spoiled]. "
+    "Do not add any other words."
+    #  """
+    # You are a fruit ripeness inspector.
+    #
+    # Look at the image and:
+    # 1. Identify the type of fruit.
+    # 2. Say whether it is unripe, ripe, or overripe.
+    # 3. Briefly explain your reasoning.
+    #
+    # Format:
+    # fruit: <type>
+    # ripeness: <unripe|ripe|overripe|spoiled>
+    # """
 )
 allowed_labels = {"unripe", "ripe", "overripe", "spoiled"}
 

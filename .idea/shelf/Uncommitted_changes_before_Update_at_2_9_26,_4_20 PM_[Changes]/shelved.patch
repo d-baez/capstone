@@ -1,0 +1,741 @@
+Index: phi3_vision_test.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import sys\nimport time\nfrom pathlib import Path\n\nfrom PIL import Image\nfrom transformers import AutoModelForCausalLM, AutoProcessor\nimport torch\n\nMODEL_ID = \"microsoft/Phi-3.5-vision-instruct\"\n\nprint(torch.backends.mps.is_available())\n\nif torch.backends.mps.is_available():\n    device = \"mps\"\nelif torch.cuda.is_available():\n    device = \"cuda\"\nelse:\n    device = \"cpu\"\nprint(f\"Using device: {device}\")\n\ndtype = torch.float16 if device in [\"mps\", \"cuda\"] else torch.float32\n\n# Load processor\nprocessor = AutoProcessor.from_pretrained(MODEL_ID, trust_remote_code=True)\n\n# Load model\nmodel = AutoModelForCausalLM.from_pretrained(\n    MODEL_ID,\n    torch_dtype=dtype,\n    device_map=\"auto\" if device == \"cuda\" else None,\n    trust_remote_code=True,\n    _attn_implementation=\"eager\",\n)\nmodel.to(device)\nmodel.eval()\n\nif device == \"cpu\":\n    model.to(device)\n\n# # Load image\n# image_path = \"apple.jpeg\"  # <-- change this to your file name\n# image = Image.open(image_path).convert(\"RGB\")\n\n# Prompt in Phi-vision chat format\nuser_prompt = (\n    # \"Classify the ripeness of the fruit in this image. \"\n    # \"Respond with exactly ONE word from this list: \"\n    # \"[unripe, ripe, overripe, spoiled]. \"\n    # \"Do not add any other words.\"\n     \"\"\"\n    You are a fruit ripeness inspector.\n    \n    Look at the image and:\n    1. Identify the type of fruit.\n    2. Say whether it is unripe, ripe, or overripe.\n    3. Briefly explain your reasoning.\n    \n    Format:\n    fruit: <type>\n    ripeness: <unripe|ripe|overripe|spoiled>\n    \"\"\"\n)\nallowed_labels = {\"unripe\", \"ripe\", \"overripe\", \"spoiled\"}\n\ndef classify_image(image_path: str):\n    \"\"\"\n        Run the model on a single image and return (raw_response, label).\n        Uses global `model`, `processor`, `device`, `user_prompt`.\n        \"\"\"\n    image = Image.open(image_path).convert(\"RGB\")\n\n    prompt = f\"<|user|>\\n<|image_1|>\\n{user_prompt}<|end|>\\n<|assistant|>\\n\"\n\n    # Prepare inputs\n    inputs = processor(\n        text=prompt,\n        images=image,\n        return_tensors=\"pt\",\n    ).to(device)\n\n    # Generate\n    print(\"Starting generation...\")\n    with torch.no_grad():\n        output_ids = model.generate(\n            **inputs,\n            max_new_tokens=8,\n            do_sample=False,\n        )\n    print(\"Finished generation.\")\n\n    # Decode only the new tokens\n    generated_ids = output_ids[:, inputs[\"input_ids\"].shape[-1]:]\n    response = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]\n\n    # Normalize to a single label\n    label = response.strip().split()[0].lower()\n    if label not in allowed_labels:\n        label = \"unknown\"\n    return response, label\n\ndef timed_single_inference(image_path: str):\n    start = time.time()\n    raw, label = classify_image(image_path)\n    elapsed = time.time() - start\n\n    print(f\"\\nImage: {image_path}\")\n    print(\"Raw model response:\", repr(raw))\n    print(\"Predicted ripeness label:\", label)\n    print(f\"Inference time: {elapsed:.3f} seconds\")\n\n    return raw, label, elapsed\n\ndef batch_test_folder(folder_path: str):\n    \"\"\"\n    Run inference on all images in a folder and print summary stats.\n    \"\"\"\n    folder = Path(folder_path)\n    exts = {\".jpg\", \".jpeg\", \".png\", \".webp\", \".bmp\", \".tiff\"}\n    image_paths = sorted(\n        p for p in folder.iterdir() if p.suffix.lower() in exts\n    )\n\n    if not image_paths:\n        print(f\"No images found in {folder}\")\n        return\n\n    print(f\"\\nFound {len(image_paths)} images in {folder}\")\n    times = []\n    results = []\n\n    for img_path in image_paths:\n        print(\"-\" * 60)\n        try:\n            raw, label, elapsed = timed_single_inference(str(img_path))\n            times.append(elapsed)\n            results.append((img_path.name, label, elapsed))\n        except Exception as e:\n            print(f\"Error processing {img_path}: {e}\")\n\n    if times:\n        avg_time = sum(times) / len(times)\n        print(\"\\n=== Batch Summary ===\")\n        print(f\"Images processed: {len(times)}\")\n        print(f\"Average inference time: {avg_time:.3f} seconds\")\n        print(f\"Min time: {min(times):.3f} seconds\")\n        print(f\"Max time: {max(times):.3f} seconds\")\n\n        print(\"\\nPer-image results:\")\n        for name, label, t in results:\n            print(f\"{name:30s} -> {label:8s} ({t:.3f}s)\")\n\n\nif __name__ == \"__main__\":\n    import argparse\n\n    parser = argparse.ArgumentParser(\n        description=\"Phi-3.5 Vision ripeness classifier (single image or folder).\"\n    )\n    parser.add_argument(\n        \"path\",\n        nargs=\"?\",\n        default=\"apple.jpeg\",  # fallback so it still works with no args\n        help=\"Path to an image file or a folder containing images\",\n    )\n    args = parser.parse_args()\n\n    p = Path(args.path)\n    if p.is_dir():\n        batch_test_folder(str(p))\n    else:\n        timed_single_inference(str(p))\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/phi3_vision_test.py b/phi3_vision_test.py
+--- a/phi3_vision_test.py	(revision 9da47601912b525d092dfca53aa46a718fd4c90a)
++++ b/phi3_vision_test.py	(date 1764784353722)
+@@ -43,22 +43,22 @@
+ 
+ # Prompt in Phi-vision chat format
+ user_prompt = (
+-    # "Classify the ripeness of the fruit in this image. "
+-    # "Respond with exactly ONE word from this list: "
+-    # "[unripe, ripe, overripe, spoiled]. "
+-    # "Do not add any other words."
+-     """
+-    You are a fruit ripeness inspector.
+-    
+-    Look at the image and:
+-    1. Identify the type of fruit.
+-    2. Say whether it is unripe, ripe, or overripe.
+-    3. Briefly explain your reasoning.
+-    
+-    Format:
+-    fruit: <type>
+-    ripeness: <unripe|ripe|overripe|spoiled>
+-    """
++    "Classify the ripeness of the fruit in this image. "
++    "Respond with exactly ONE word and accuracy percentage from this list: "
++    "[unripe, ripe, overripe, spoiled]. "
++    "Do not add any other words."
++    #  """
++    # You are a fruit ripeness inspector.
++    #
++    # Look at the image and:
++    # 1. Identify the type of fruit.
++    # 2. Say whether it is unripe, ripe, or overripe.
++    # 3. Briefly explain your reasoning.
++    #
++    # Format:
++    # fruit: <type>
++    # ripeness: <unripe|ripe|overripe|spoiled>
++    # """
+ )
+ allowed_labels = {"unripe", "ripe", "overripe", "spoiled"}
+ 
+Index: README.md
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+># Scope of Work\n\nThis component of the project is to create a CV model that can detect the ripeness of a fruit with the input from a camera. \nThe model will be trained on a dataset of images of fruits at various stages of ripeness. The main tasks involved in this component are:\n1. Data Collection: Gather a diverse dataset of fruit images labeled with their ripeness levels.\n2. Data Preprocessing: Clean and preprocess the images to ensure they are suitable for training the model.\n3. Model Selection: Choose an appropriate computer vision model architecture for the ripeness detection task.\n4. Model Training: Train the selected model on the preprocessed dataset.\n5. Model Evaluation: Evaluate the model's performance using appropriate metrics and validate its accuracy.\n6. Deployment: Integrate the trained model into a system that can take input from a camera and output the ripeness level of the fruit.\n7. Testing: Conduct thorough testing to ensure the model works effectively in real-world scenarios.\n8. Documentation: Document the entire process, including data collection methods, model architecture, training procedures, and deployment steps.\nThe successful completion of this component will result      \n\nProject Goals\n\n\t•\tDevelop a lightweight image-classification model to detect:\n        •\tUnripe\n        •\tRipe\n        •\tOverripe\n\t•\tUse a camera feed for real-time inference.\n\t•\tOptimize the model for edge deployment:\n\t•\tTensorFlow Lite (TFLite)\n\t•\tONNX Runtime\n\t•\tJetson-accelerated inference (when available)\n\t•\tCompare lightweight CNN performance to large VLMs (like Phi-3.5 Vision).\n\n⸻\n\nSystem Architecture\n\n1. Data Collection\n\t•\tImages captured using a camera or manually curated dataset.\n\t•\tPreprocessing pipeline for:\n\t•\tResizing\n\t•\tNormalization\n\t•\tAugmentation (brightness, rotation, blur)\n\n2. Model Design:\n\nTwo model pathways are explored:\n\n    a. Lightweight CNN (recommended for Raspberry Pi)\n        •\tSmall custom CNN\n        •\tOptional MobileNetV2 or EfficientNet-Lite\n        •\tOutputs 3 classes: unripe / ripe / overripe\n        •\tExport to TFLite for fast inference\n    \n    B. Phi-3.5 Vision (Desktop Testing Only)\n        •\tUsed for:\n        •\tAnnotation assistance\n        •\tPrototype testing\n        •\tValidation\n        •\tNot suitable for live inference on low-power devices
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/README.md b/README.md
+--- a/README.md	(revision 9da47601912b525d092dfca53aa46a718fd4c90a)
++++ b/README.md	(date 1770670516062)
+@@ -51,4 +51,36 @@
+         •	Annotation assistance
+         •	Prototype testing
+         •	Validation
+-        •	Not suitable for live inference on low-power devices
+\ No newline at end of file
++        •	Not suitable for live inference on low-power devices
++
++
++update 2/9/25
++
++# Watermelon Integration
++
++## Quick Start
++
++1. **Organize Watermelon Dataset**
++```bash
++   python watermelon_dataset_loader.py
++```
++
++2. **Train Watermelon Model**
++```bash
++   python train_cnn_watermelon.py
++```
++
++3. **Convert to TFLite** (for Pi deployment)
++```bash
++   python convert_watermelon_to_tflite.py
++```
++
++## Model Comparison
++
++| Feature | Banana Model | Watermelon Model |
++|---------|--------------|------------------|
++| Input Size | 96x96 | 224x224 |
++| Classes | 3 | 4 |
++| Architecture | Lightweight CNN | Deeper CNN |
++| Data Source | Manual collection | Qilin Dataset |
++| Audio Data | No | Available (future) |
+\ No newline at end of file
+Index: train_cnn_bananas.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+># train_cnn_bananas.py\nimport tensorflow as tf\nfrom tensorflow import keras\nfrom tensorflow.keras import layers\nfrom pathlib import Path\n\nDATA_DIR = Path(\"data\")\nIMG_SIZE = (96, 96)   # keep small for Pi\nBATCH_SIZE = 32\nEPOCHS = 15\nMODEL_OUT = \"banana_cnn.h5\"\n\ntrain_dir = DATA_DIR / \"train\"\nval_dir = DATA_DIR / \"val\"\n\ntrain_ds = keras.utils.image_dataset_from_directory(\n    train_dir,\n    image_size=IMG_SIZE,\n    batch_size=BATCH_SIZE,\n    label_mode=\"categorical\",   # 3 classes\n)\n\nval_ds = keras.utils.image_dataset_from_directory(\n    val_dir,\n    image_size=IMG_SIZE,\n    batch_size=BATCH_SIZE,\n    label_mode=\"categorical\",\n)\n\n# Performance tweaks\nAUTOTUNE = tf.data.AUTOTUNE\ntrain_ds = train_ds.shuffle(1000).prefetch(AUTOTUNE)\nval_ds = val_ds.prefetch(AUTOTUNE)\n\nnum_classes = 3\n\ndata_augmentation = keras.Sequential(\n    [\n        layers.RandomFlip(\"horizontal\"),\n        layers.RandomRotation(0.05),\n        layers.RandomZoom(0.1),\n    ]\n)\n\ndef make_small_cnn(input_shape=(96, 96, 3), num_classes=3):\n    inputs = keras.Input(shape=input_shape)\n\n    x = data_augmentation(inputs)\n    x = layers.Rescaling(1.0 / 255.0)(x)\n\n    # Tiny CNN\n    x = layers.Conv2D(16, 3, padding=\"same\", activation=\"relu\")(x)\n    x = layers.MaxPooling2D()(x)\n\n    x = layers.Conv2D(32, 3, padding=\"same\", activation=\"relu\")(x)\n    x = layers.MaxPooling2D()(x)\n\n    x = layers.Conv2D(64, 3, padding=\"same\", activation=\"relu\")(x)\n    x = layers.MaxPooling2D()(x)\n\n    x = layers.GlobalAveragePooling2D()(x)\n    x = layers.Dropout(0.3)(x)\n    outputs = layers.Dense(num_classes, activation=\"softmax\")(x)\n\n    model = keras.Model(inputs, outputs)\n    return model\n\nmodel = make_small_cnn(input_shape=IMG_SIZE + (3,), num_classes=num_classes)\nmodel.summary()\n\nmodel.compile(\n    optimizer=keras.optimizers.Adam(1e-3),\n    loss=\"categorical_crossentropy\",\n    metrics=[\"accuracy\"],\n)\n\ncallbacks = [\n    keras.callbacks.ModelCheckpoint(\n        MODEL_OUT, save_best_only=True, monitor=\"val_accuracy\", mode=\"max\"\n    ),\n    keras.callbacks.ReduceLROnPlateau(\n        monitor=\"val_loss\", factor=0.5, patience=3, verbose=1\n    ),\n]\n\nhistory = model.fit(\n    train_ds,\n    validation_data=val_ds,\n    epochs=EPOCHS,\n    callbacks=callbacks,\n)\n\nprint(f\"Saved best model to {MODEL_OUT}\")
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/train_cnn_bananas.py b/train_cnn_bananas.py
+--- a/train_cnn_bananas.py	(revision 9da47601912b525d092dfca53aa46a718fd4c90a)
++++ b/train_cnn_bananas.py	(date 1765310057445)
+@@ -4,7 +4,8 @@
+ from tensorflow.keras import layers
+ from pathlib import Path
+ 
+-DATA_DIR = Path("data")
++BASE_DIR = Path(__file__).resolve().parent
++DATA_DIR = BASE_DIR / "data"
+ IMG_SIZE = (96, 96)   # keep small for Pi
+ BATCH_SIZE = 32
+ EPOCHS = 15
+@@ -27,13 +28,17 @@
+     label_mode="categorical",
+ )
+ 
++# Infer classes from the folder names
++class_names = train_ds.class_names
++num_classes = len(class_names)
++print(f"Detected classes: {class_names}")
++print(f"Number of classes: {num_classes}")
++
+ # Performance tweaks
+ AUTOTUNE = tf.data.AUTOTUNE
+ train_ds = train_ds.shuffle(1000).prefetch(AUTOTUNE)
+ val_ds = val_ds.prefetch(AUTOTUNE)
+ 
+-num_classes = 3
+-
+ data_augmentation = keras.Sequential(
+     [
+         layers.RandomFlip("horizontal"),
+@@ -42,7 +47,9 @@
+     ]
+ )
+ 
+-def make_small_cnn(input_shape=(96, 96, 3), num_classes=3):
++def make_small_cnn(input_shape=(96, 96, 3), num_classes=None):
++    if num_classes is None:
++        raise ValueError("num_classes must be provided")
+     inputs = keras.Input(shape=input_shape)
+ 
+     x = data_augmentation(inputs)
+Index: watermelon_dataset_loader.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/watermelon_dataset_loader.py b/watermelon_dataset_loader.py
+new file mode 100644
+--- /dev/null	(date 1770671537226)
++++ b/watermelon_dataset_loader.py	(date 1770671537226)
+@@ -0,0 +1,283 @@
++# watermelon_dataset_loader.py
++# train_cnn_watermelon.py
++import tensorflow as tf
++from tensorflow import keras
++from tensorflow.keras import layers
++from pathlib import Path
++import logging
++import sys
++from datetime import datetime
++import json
++
++# Setup logging
++log_filename = f"logs/watermelon_training_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
++Path("logs").mkdir(exist_ok=True)
++
++logging.basicConfig(
++    level=logging.INFO,
++    format='%(asctime)s - %(levelname)s - %(message)s',
++    handlers=[
++        logging.FileHandler(log_filename),
++        logging.StreamHandler(sys.stdout)
++    ]
++)
++logger = logging.getLogger(__name__)
++
++DATA_DIR = Path("data_watermelon")
++IMG_SIZE = (224, 224)
++BATCH_SIZE = 16
++EPOCHS = 20
++MODEL_OUT = "watermelon_cnn.h5"
++
++logger.info("=" * 60)
++logger.info("WATERMELON RIPENESS DETECTION - TRAINING")
++logger.info("=" * 60)
++logger.info(f"Data directory: {DATA_DIR}")
++logger.info(f"Image size: {IMG_SIZE}")
++logger.info(f"Batch size: {BATCH_SIZE}")
++logger.info(f"Epochs: {EPOCHS}")
++
++train_dir = DATA_DIR / "train"
++val_dir = DATA_DIR / "val"
++
++logger.info("\nLoading datasets...")
++train_ds = keras.utils.image_dataset_from_directory(
++    train_dir,
++    image_size=IMG_SIZE,
++    batch_size=BATCH_SIZE,
++    label_mode="categorical",
++)
++
++val_ds = keras.utils.image_dataset_from_directory(
++    val_dir,
++    image_size=IMG_SIZE,
++    batch_size=BATCH_SIZE,
++    label_mode="categorical",
++)
++
++# Log class names
++class_names = train_ds.class_names
++logger.info(f"Classes: {class_names}")
++
++# Performance tweaks
++AUTOTUNE = tf.data.AUTOTUNE
++train_ds = train_ds.shuffle(1000).prefetch(AUTOTUNE)
++val_ds = val_ds.prefetch(AUTOTUNE)
++
++num_classes = 4
++
++data_augmentation = keras.Sequential([
++    layers.RandomFlip("horizontal_and_vertical"),
++    layers.RandomRotation(0.2),
++    layers.RandomZoom(0.15),
++    layers.RandomBrightness(0.2),
++    layers.RandomContrast(0.2),
++])
++
++
++def make_watermelon_cnn(input_shape=(224, 224, 3), num_classes=4):
++    inputs = keras.Input(shape=input_shape)
++
++    x = data_augmentation(inputs)
++    x = layers.Rescaling(1.0 / 255.0)(x)
++
++    x = layers.Conv2D(32, 3, padding="same", activation="relu")(x)
++    x = layers.BatchNormalization()(x)
++    x = layers.MaxPooling2D()(x)
++
++    x = layers.Conv2D(64, 3, padding="same", activation="relu")(x)
++    x = layers.BatchNormalization()(x)
++    x = layers.MaxPooling2D()(x)
++
++    x = layers.Conv2D(128, 3, padding="same", activation="relu")(x)
++    x = layers.BatchNormalization()(x)
++    x = layers.MaxPooling2D()(x)
++
++    x = layers.Conv2D(256, 3, padding="same", activation="relu")(x)
++    x = layers.BatchNormalization()(x)
++    x = layers.MaxPooling2D()(x)
++
++    x = layers.GlobalAveragePooling2D()(x)
++    x = layers.Dropout(0.4)(x)
++    x = layers.Dense(128, activation="relu")(x)
++    x = layers.Dropout(0.3)(x)
++    outputs = layers.Dense(num_classes, activation="softmax")(x)
++
++    model = keras.Model(inputs, outputs)
++    return model
++
++
++logger.info("\nBuilding model...")
++model = make_watermelon_cnn(input_shape=IMG_SIZE + (3,), num_classes=num_classes)
++
++# Log model summary to file
++with open(log_filename.replace('.log', '_model_summary.txt'), 'w') as f:
++    model.summary(print_fn=lambda x: f.write(x + '\n'))
++model.summary()
++
++total_params = model.count_params()
++logger.info(f"Total parameters: {total_params:,}")
++
++model.compile(
++    optimizer=keras.optimizers.Adam(1e-4),
++    loss="categorical_crossentropy",
++    metrics=["accuracy"],
++)
++
++
++# Custom callback for logging
++class LoggingCallback(keras.callbacks.Callback):
++    def on_epoch_end(self, epoch, logs=None):
++        logger.info(
++            f"Epoch {epoch + 1}/{EPOCHS} - "
++            f"loss: {logs['loss']:.4f} - "
++            f"acc: {logs['accuracy']:.4f} - "
++            f"val_loss: {logs['val_loss']:.4f} - "
++            f"val_acc: {logs['val_accuracy']:.4f}"
++        )
++
++
++callbacks = [
++    LoggingCallback(),
++    keras.callbacks.ModelCheckpoint(
++        MODEL_OUT, save_best_only=True, monitor="val_accuracy", mode="max"
++    ),
++    keras.callbacks.ReduceLROnPlateau(
++        monitor="val_loss", factor=0.5, patience=5, verbose=1
++    ),
++    keras.callbacks.EarlyStopping(
++        monitor="val_loss", patience=10, restore_best_weights=True
++    ),
++]
++
++logger.info("\nStarting training...")
++logger.info("=" * 60)
++
++history = model.fit(
++    train_ds,
++    validation_data=val_ds,
++    epochs=EPOCHS,
++    callbacks=callbacks,
++    verbose=1  # Keep Keras progress bar
++)
++
++logger.info("=" * 60)
++logger.info(f"Training complete! Saved best model to {MODEL_OUT}")
++
++# Save training history
++history_file = "watermelon_training_history.json"
++history_dict = {k: [float(v) for v in vals] for k, vals in history.history.items()}
++with open(history_file, "w") as f:
++    json.dump(history_dict, f, indent=2)
++logger.info(f"Saved training history to {history_file}")
++
++# Log final metrics
++best_val_acc = max(history.history['val_accuracy'])
++best_val_loss = min(history.history['val_loss'])
++logger.info(f"\nBest validation accuracy: {best_val_acc:.4f}")
++logger.info(f"Best validation loss: {best_val_loss:.4f}")
++
++logger.info(f"\nLog saved to: {log_filename}")
++import os
++import shutil
++from pathlib import Path
++
++
++def organize_watermelon_dataset(
++        qilin_dataset_dir,
++        output_dir="data_watermelon",
++        sweetness_thresholds=(9.0, 11.0, 13.0)
++):
++    """
++    Organize Qilin watermelon dataset into train/val structure
++    compatible with your banana training pipeline.
++
++    Args:
++        qilin_dataset_dir: Path to the "19_datasets" folder
++        output_dir: Where to create organized dataset
++        sweetness_thresholds: (unripe_max, ripe_max, overripe_max)
++    """
++    output_path = Path(output_dir)
++    train_path = output_path / "train"
++    val_path = output_path / "val"
++
++    # Create class directories
++    class_names = ["unripe", "ripe", "overripe", "spoiled"]
++    for split in [train_path, val_path]:
++        for class_name in class_names:
++            (split / class_name).mkdir(parents=True, exist_ok=True)
++
++    # Process each watermelon sample
++    subdirs = [d for d in os.listdir(qilin_dataset_dir)
++               if os.path.isdir(os.path.join(qilin_dataset_dir, d))]
++
++    all_samples = []
++
++    for subdir in subdirs:
++        data_id, sweetness_str = subdir.split("_")
++        sweetness = float(sweetness_str)
++
++        # Classify based on sweetness
++        if sweetness < sweetness_thresholds[0]:
++            class_label = "unripe"
++        elif sweetness < sweetness_thresholds[1]:
++            class_label = "ripe"
++        elif sweetness < sweetness_thresholds[2]:
++            class_label = "overripe"
++        else:
++            class_label = "spoiled"
++
++        # Find all images in chu folder
++        chu_path = os.path.join(qilin_dataset_dir, subdir, "chu")
++        if not os.path.exists(chu_path):
++            continue
++
++        folders = [f for f in os.listdir(chu_path)
++                   if os.path.isdir(os.path.join(chu_path, f))]
++
++        for folder in folders:
++            folder_path = os.path.join(chu_path, folder)
++            jpg_files = [f for f in os.listdir(folder_path)
++                         if f.endswith(".jpg")]
++
++            for jpg_file in jpg_files:
++                jpg_path = os.path.join(folder_path, jpg_file)
++                all_samples.append((jpg_path, class_label, data_id, folder))
++
++    # Shuffle and split
++    import random
++    random.seed(42)
++    random.shuffle(all_samples)
++
++    split_idx = int(0.8 * len(all_samples))
++    train_samples = all_samples[:split_idx]
++    val_samples = all_samples[split_idx:]
++
++    # Copy files
++    print(f"Organizing {len(train_samples)} training and {len(val_samples)} validation images...")
++
++    for samples, split_path in [(train_samples, train_path), (val_samples, val_path)]:
++        for idx, (jpg_path, class_label, data_id, folder) in enumerate(samples):
++            dest_filename = f"{data_id}_{folder}_{idx}.jpg"
++            dest_path = split_path / class_label / dest_filename
++            shutil.copy2(jpg_path, dest_path)
++
++    # Print statistics
++    print("\nDataset Statistics:")
++    print("-" * 50)
++    for split_name, split_path in [("Train", train_path), ("Val", val_path)]:
++        print(f"\n{split_name}:")
++        for class_name in class_names:
++            count = len(list((split_path / class_name).glob("*.jpg")))
++            print(f"  {class_name}: {count}")
++
++    return output_path
++
++
++if __name__ == "__main__":
++    # Update this path to your watermelon dataset
++    QILIN_DIR = "/Users/danielbaez/Documents/GitHub/watermelon_eval/19_datasets"
++
++    # Organize the dataset
++    dataset_path = organize_watermelon_dataset(QILIN_DIR)
++    print(f"\nDataset organized at: {dataset_path}")
+\ No newline at end of file
+Index: .idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project version=\"4\">\n  <component name=\"AutoImportSettings\">\n    <option name=\"autoReloadType\" value=\"SELECTIVE\" />\n  </component>\n  <component name=\"ChangeListManager\">\n    <list default=\"true\" id=\"475b5649-34e9-481b-b1fc-59a413d27640\" name=\"Changes\" comment=\"updated code to perform better on my mac. also can now handle batched folder images\">\n      <change afterPath=\"$PROJECT_DIR$/convert_to_tflite.py\" afterDir=\"false\" />\n      <change afterPath=\"$PROJECT_DIR$/convert_to_tflite_int8.py\" afterDir=\"false\" />\n      <change afterPath=\"$PROJECT_DIR$/pi/pi_infer_fruit.py\" afterDir=\"false\" />\n      <change afterPath=\"$PROJECT_DIR$/train_cnn_bananas.py\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/.idea/workspace.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/workspace.xml\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/README.md\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/README.md\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/phi3_vision_test.py\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/phi3_vision_test.py\" afterDir=\"false\" />\n    </list>\n    <option name=\"SHOW_DIALOG\" value=\"false\" />\n    <option name=\"HIGHLIGHT_CONFLICTS\" value=\"true\" />\n    <option name=\"HIGHLIGHT_NON_ACTIVE_CHANGELIST\" value=\"false\" />\n    <option name=\"LAST_RESOLUTION\" value=\"IGNORE\" />\n  </component>\n  <component name=\"FileTemplateManagerImpl\">\n    <option name=\"RECENT_TEMPLATES\">\n      <list>\n        <option value=\"Python Script\" />\n      </list>\n    </option>\n  </component>\n  <component name=\"Git.Settings\">\n    <option name=\"RECENT_GIT_ROOT_PATH\" value=\"$PROJECT_DIR$\" />\n  </component>\n  <component name=\"GitHubPullRequestSearchHistory\"><![CDATA[{\n  \"lastFilter\": {\n    \"state\": \"OPEN\",\n    \"assignee\": \"d-baez\"\n  }\n}]]></component>\n  <component name=\"GithubPullRequestsUISettings\"><![CDATA[{\n  \"selectedUrlAndAccountId\": {\n    \"url\": \"https://github.com/d-baez/capstone.git\",\n    \"accountId\": \"db0c6ff5-801d-47ad-9f2d-f4ada64fd496\"\n  }\n}]]></component>\n  <component name=\"ProjectColorInfo\">{\n  &quot;associatedIndex&quot;: 8\n}</component>\n  <component name=\"ProjectId\" id=\"35i6eC42xaDJxg3AyPJGK0LmicW\" />\n  <component name=\"ProjectViewState\">\n    <option name=\"hideEmptyMiddlePackages\" value=\"true\" />\n    <option name=\"showLibraryContents\" value=\"true\" />\n  </component>\n  <component name=\"PropertiesComponent\"><![CDATA[{\n  \"keyToString\": {\n    \"ModuleVcsDetector.initialDetectionPerformed\": \"true\",\n    \"Python.phi3_vision_test.executor\": \"Run\",\n    \"RunOnceActivity.ShowReadmeOnStart\": \"true\",\n    \"RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252\": \"true\",\n    \"RunOnceActivity.git.unshallow\": \"true\",\n    \"git-widget-placeholder\": \"master\",\n    \"last_opened_file_path\": \"/Users/danielbaez/Documents/GitHub/capstone\",\n    \"settings.editor.selected.configurable\": \"preferences.pluginManager\"\n  }\n}]]></component>\n  <component name=\"RecentsManager\">\n    <key name=\"CopyFile.RECENT_KEYS\">\n      <recent name=\"$PROJECT_DIR$\" />\n    </key>\n    <key name=\"MoveFile.RECENT_KEYS\">\n      <recent name=\"$PROJECT_DIR$\" />\n    </key>\n  </component>\n  <component name=\"SharedIndexes\">\n    <attachedChunks>\n      <set>\n        <option value=\"bundled-python-sdk-4e2b1448bda8-9a97661f3031-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-252.27397.106\" />\n      </set>\n    </attachedChunks>\n  </component>\n  <component name=\"TaskManager\">\n    <task active=\"true\" id=\"Default\" summary=\"Default task\">\n      <changelist id=\"475b5649-34e9-481b-b1fc-59a413d27640\" name=\"Changes\" comment=\"\" />\n      <created>1763580638717</created>\n      <option name=\"number\" value=\"Default\" />\n      <option name=\"presentableId\" value=\"Default\" />\n      <updated>1763580638717</updated>\n    </task>\n    <task id=\"LOCAL-00001\" summary=\"Created model and ran with local apple.jpeg\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1763646864510</created>\n      <option name=\"number\" value=\"00001\" />\n      <option name=\"presentableId\" value=\"LOCAL-00001\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1763646864510</updated>\n    </task>\n    <task id=\"LOCAL-00002\" summary=\"updated code to perform better on my mac. also can now handle batched folder images\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1763664728830</created>\n      <option name=\"number\" value=\"00002\" />\n      <option name=\"presentableId\" value=\"LOCAL-00002\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1763664728830</updated>\n    </task>\n    <option name=\"localTasksCounter\" value=\"3\" />\n    <servers />\n  </component>\n  <component name=\"Vcs.Log.Tabs.Properties\">\n    <option name=\"TAB_STATES\">\n      <map>\n        <entry key=\"MAIN\">\n          <value>\n            <State />\n          </value>\n        </entry>\n      </map>\n    </option>\n  </component>\n  <component name=\"VcsManagerConfiguration\">\n    <MESSAGE value=\"Created model and ran with local apple.jpeg\" />\n    <MESSAGE value=\"updated code to perform better on my mac. also can now handle batched folder images\" />\n    <option name=\"LAST_COMMIT_MESSAGE\" value=\"updated code to perform better on my mac. also can now handle batched folder images\" />\n  </component>\n  <component name=\"github-copilot-workspace\">\n    <instructionFileLocations>\n      <option value=\".github/instructions\" />\n    </instructionFileLocations>\n    <promptFileLocations>\n      <option value=\".github/prompts\" />\n    </promptFileLocations>\n  </component>\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/workspace.xml b/.idea/workspace.xml
+--- a/.idea/workspace.xml	(revision 9da47601912b525d092dfca53aa46a718fd4c90a)
++++ b/.idea/workspace.xml	(date 1770671961841)
+@@ -4,19 +4,24 @@
+     <option name="autoReloadType" value="SELECTIVE" />
+   </component>
+   <component name="ChangeListManager">
+-    <list default="true" id="475b5649-34e9-481b-b1fc-59a413d27640" name="Changes" comment="updated code to perform better on my mac. also can now handle batched folder images">
+-      <change afterPath="$PROJECT_DIR$/convert_to_tflite.py" afterDir="false" />
+-      <change afterPath="$PROJECT_DIR$/convert_to_tflite_int8.py" afterDir="false" />
+-      <change afterPath="$PROJECT_DIR$/pi/pi_infer_fruit.py" afterDir="false" />
+-      <change afterPath="$PROJECT_DIR$/train_cnn_bananas.py" afterDir="false" />
++    <list default="true" id="475b5649-34e9-481b-b1fc-59a413d27640" name="Changes" comment="update response format">
++      <change afterPath="$PROJECT_DIR$/logs/2-9-26_0414pm.log" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/train_cnn_watermelons.py" afterDir="false" />
++      <change afterPath="$PROJECT_DIR$/watermelon_dataset_loader.py" afterDir="false" />
+       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/images/banana1jpeg.jpeg" beforeDir="false" afterPath="$PROJECT_DIR$/images/banana1.jpeg" afterDir="false" />
+       <change beforePath="$PROJECT_DIR$/phi3_vision_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/phi3_vision_test.py" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/train_cnn_bananas.py" beforeDir="false" afterPath="$PROJECT_DIR$/train_cnn_bananas.py" afterDir="false" />
+     </list>
+     <option name="SHOW_DIALOG" value="false" />
+     <option name="HIGHLIGHT_CONFLICTS" value="true" />
+     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+     <option name="LAST_RESOLUTION" value="IGNORE" />
++  </component>
++  <component name="ExportToHTMLSettings">
++    <option name="printScope" value="4" />
++    <option name="OUTPUT_DIRECTORY" value="$USER_HOME$/Library/CloudStorage/Box-Box/capstone" />
+   </component>
+   <component name="FileTemplateManagerImpl">
+     <option name="RECENT_TEMPLATES">
+@@ -28,18 +33,22 @@
+   <component name="Git.Settings">
+     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+   </component>
+-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+-  "lastFilter": {
+-    "state": "OPEN",
+-    "assignee": "d-baez"
++  <component name="GitHubPullRequestSearchHistory">{
++  &quot;lastFilter&quot;: {
++    &quot;state&quot;: &quot;OPEN&quot;,
++    &quot;assignee&quot;: &quot;d-baez&quot;
+   }
+-}]]></component>
+-  <component name="GithubPullRequestsUISettings"><![CDATA[{
+-  "selectedUrlAndAccountId": {
+-    "url": "https://github.com/d-baez/capstone.git",
+-    "accountId": "db0c6ff5-801d-47ad-9f2d-f4ada64fd496"
++}</component>
++  <component name="GithubPullRequestsUISettings">{
++  &quot;selectedUrlAndAccountId&quot;: {
++    &quot;url&quot;: &quot;https://github.com/d-baez/capstone.git&quot;,
++    &quot;accountId&quot;: &quot;db0c6ff5-801d-47ad-9f2d-f4ada64fd496&quot;
+   }
+-}]]></component>
++}</component>
++  <component name="McpProjectServerCommands">
++    <commands />
++    <urls />
++  </component>
+   <component name="ProjectColorInfo">{
+   &quot;associatedIndex&quot;: 8
+ }</component>
+@@ -52,6 +61,9 @@
+   "keyToString": {
+     "ModuleVcsDetector.initialDetectionPerformed": "true",
+     "Python.phi3_vision_test.executor": "Run",
++    "Python.train_cnn_bananas.executor": "Run",
++    "Python.watermelon_dataset_loader.executor": "Run",
++    "RunOnceActivity.MCP Project settings loaded": "true",
+     "RunOnceActivity.ShowReadmeOnStart": "true",
+     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+     "RunOnceActivity.git.unshallow": "true",
+@@ -65,13 +77,16 @@
+       <recent name="$PROJECT_DIR$" />
+     </key>
+     <key name="MoveFile.RECENT_KEYS">
++      <recent name="$PROJECT_DIR$/data/train/ripe" />
++      <recent name="$PROJECT_DIR$/data/train/spoiled" />
++      <recent name="$PROJECT_DIR$/data/train/unripe" />
+       <recent name="$PROJECT_DIR$" />
+     </key>
+   </component>
+   <component name="SharedIndexes">
+     <attachedChunks>
+       <set>
+-        <option value="bundled-python-sdk-4e2b1448bda8-9a97661f3031-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-252.27397.106" />
++        <option value="bundled-python-sdk-f2b7a9f6281b-6e1f45a539f7-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-253.29346.142" />
+       </set>
+     </attachedChunks>
+   </component>
+@@ -99,7 +114,23 @@
+       <option name="project" value="LOCAL" />
+       <updated>1763664728830</updated>
+     </task>
+-    <option name="localTasksCounter" value="3" />
++    <task id="LOCAL-00003" summary="create files for Raspi; update README.md with sow.">
++      <option name="closed" value="true" />
++      <created>1764356555109</created>
++      <option name="number" value="00003" />
++      <option name="presentableId" value="LOCAL-00003" />
++      <option name="project" value="LOCAL" />
++      <updated>1764356555110</updated>
++    </task>
++    <task id="LOCAL-00004" summary="update response format">
++      <option name="closed" value="true" />
++      <created>1764357528308</created>
++      <option name="number" value="00004" />
++      <option name="presentableId" value="LOCAL-00004" />
++      <option name="project" value="LOCAL" />
++      <updated>1764357528308</updated>
++    </task>
++    <option name="localTasksCounter" value="5" />
+     <servers />
+   </component>
+   <component name="Vcs.Log.Tabs.Properties">
+@@ -116,7 +147,9 @@
+   <component name="VcsManagerConfiguration">
+     <MESSAGE value="Created model and ran with local apple.jpeg" />
+     <MESSAGE value="updated code to perform better on my mac. also can now handle batched folder images" />
+-    <option name="LAST_COMMIT_MESSAGE" value="updated code to perform better on my mac. also can now handle batched folder images" />
++    <MESSAGE value="create files for Raspi; update README.md with sow." />
++    <MESSAGE value="update response format" />
++    <option name="LAST_COMMIT_MESSAGE" value="update response format" />
+   </component>
+   <component name="github-copilot-workspace">
+     <instructionFileLocations>
+Index: train_cnn_watermelons.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/train_cnn_watermelons.py b/train_cnn_watermelons.py
+new file mode 100644
+--- /dev/null	(date 1770670376580)
++++ b/train_cnn_watermelons.py	(date 1770670376580)
+@@ -0,0 +1,118 @@
++# train_cnn_watermelon.py
++import tensorflow as tf
++from tensorflow import keras
++from tensorflow.keras import layers
++from pathlib import Path
++
++DATA_DIR = Path("data_watermelon")
++IMG_SIZE = (224, 224)  # Larger than banana - watermelons have more detail
++BATCH_SIZE = 16
++EPOCHS = 20
++MODEL_OUT = "watermelon_cnn.h5"
++
++train_dir = DATA_DIR / "train"
++val_dir = DATA_DIR / "val"
++
++train_ds = keras.utils.image_dataset_from_directory(
++    train_dir,
++    image_size=IMG_SIZE,
++    batch_size=BATCH_SIZE,
++    label_mode="categorical",
++)
++
++val_ds = keras.utils.image_dataset_from_directory(
++    val_dir,
++    image_size=IMG_SIZE,
++    batch_size=BATCH_SIZE,
++    label_mode="categorical",
++)
++
++# Performance tweaks
++AUTOTUNE = tf.data.AUTOTUNE
++train_ds = train_ds.shuffle(1000).prefetch(AUTOTUNE)
++val_ds = val_ds.prefetch(AUTOTUNE)
++
++num_classes = 4  # unripe, ripe, overripe, spoiled
++
++data_augmentation = keras.Sequential([
++    layers.RandomFlip("horizontal_and_vertical"),  # Watermelons can be rotated
++    layers.RandomRotation(0.2),
++    layers.RandomZoom(0.15),
++    layers.RandomBrightness(0.2),  # Lighting variations
++    layers.RandomContrast(0.2),
++])
++
++
++def make_watermelon_cnn(input_shape=(224, 224, 3), num_classes=4):
++    """
++    CNN for watermelon ripeness detection.
++    Slightly larger than banana model due to more complex patterns.
++    """
++    inputs = keras.Input(shape=input_shape)
++
++    x = data_augmentation(inputs)
++    x = layers.Rescaling(1.0 / 255.0)(x)
++
++    # Deeper network - watermelons need more feature extraction
++    x = layers.Conv2D(32, 3, padding="same", activation="relu")(x)
++    x = layers.BatchNormalization()(x)
++    x = layers.MaxPooling2D()(x)
++
++    x = layers.Conv2D(64, 3, padding="same", activation="relu")(x)
++    x = layers.BatchNormalization()(x)
++    x = layers.MaxPooling2D()(x)
++
++    x = layers.Conv2D(128, 3, padding="same", activation="relu")(x)
++    x = layers.BatchNormalization()(x)
++    x = layers.MaxPooling2D()(x)
++
++    x = layers.Conv2D(256, 3, padding="same", activation="relu")(x)
++    x = layers.BatchNormalization()(x)
++    x = layers.MaxPooling2D()(x)
++
++    x = layers.GlobalAveragePooling2D()(x)
++    x = layers.Dropout(0.4)(x)
++    x = layers.Dense(128, activation="relu")(x)
++    x = layers.Dropout(0.3)(x)
++    outputs = layers.Dense(num_classes, activation="softmax")(x)
++
++    model = keras.Model(inputs, outputs)
++    return model
++
++
++model = make_watermelon_cnn(input_shape=IMG_SIZE + (3,), num_classes=num_classes)
++model.summary()
++
++model.compile(
++    optimizer=keras.optimizers.Adam(1e-4),  # Lower learning rate
++    loss="categorical_crossentropy",
++    metrics=["accuracy"],
++)
++
++callbacks = [
++    keras.callbacks.ModelCheckpoint(
++        MODEL_OUT, save_best_only=True, monitor="val_accuracy", mode="max"
++    ),
++    keras.callbacks.ReduceLROnPlateau(
++        monitor="val_loss", factor=0.5, patience=5, verbose=1
++    ),
++    keras.callbacks.EarlyStopping(
++        monitor="val_loss", patience=10, restore_best_weights=True
++    ),
++]
++
++history = model.fit(
++    train_ds,
++    validation_data=val_ds,
++    epochs=EPOCHS,
++    callbacks=callbacks,
++)
++
++print(f"\nSaved best model to {MODEL_OUT}")
++
++# Save training history
++import json
++
++history_dict = {k: [float(v) for v in vals] for k, vals in history.history.items()}
++with open("watermelon_training_history.json", "w") as f:
++    json.dump(history_dict, f, indent=2)
+\ No newline at end of file
+Index: logs/2-9-26_0414pm.log
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/logs/2-9-26_0414pm.log b/logs/2-9-26_0414pm.log
+new file mode 100644
+--- /dev/null	(date 1770671687901)
++++ b/logs/2-9-26_0414pm.log	(date 1770671687901)
+@@ -0,0 +1,21 @@
++/Users/danielbaez/Documents/GitHub/capstone/.venv/bin/python /Users/danielbaez/Documents/GitHub/capstone/watermelon_dataset_loader.py
++Organizing 1245 training and 312 validation images...
++
++Dataset Statistics:
++--------------------------------------------------
++
++Train:
++  unripe: 66
++  ripe: 832
++  overripe: 347
++  spoiled: 0
++
++Val:
++  unripe: 15
++  ripe: 221
++  overripe: 76
++  spoiled: 0
++
++Dataset organized at: data_watermelon
++
++Process finished with exit code 0
