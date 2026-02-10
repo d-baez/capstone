@@ -24,7 +24,6 @@ Project Goals
 	•	TensorFlow Lite (TFLite)
 	•	ONNX Runtime
 	•	Jetson-accelerated inference (when available)
-	•	Compare lightweight CNN performance to large VLMs (like Phi-3.5 Vision).
 
 ⸻
 
@@ -33,9 +32,9 @@ System Architecture
 1. Data Collection
 	•	Images captured using a camera or a manually curated dataset.
 	•	Preprocessing pipeline for:
-	•	Resizing
-	•	Normalization
-	•	Augmentation (brightness, rotation, blur)
+		•	Resizing
+		•	Normalization
+		•	Augmentation (brightness, rotation, blur)
 
 2. Model Design:
 
@@ -47,7 +46,7 @@ Two model pathways are explored:
         •	Outputs 4 classes: unripe / ripe / overripe / spoiled
         •	Export to TFLite for fast inference
     
-    B. Phi-3.5 Vision (Desktop Testing Only)
+    B. Phi-3.5 Vision ( Desktop Testing Only ) 
         •	Used for:
         •	Annotation assistance
         •	Prototype testing
